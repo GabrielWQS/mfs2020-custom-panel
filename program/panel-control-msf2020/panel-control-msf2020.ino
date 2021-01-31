@@ -5,86 +5,81 @@
 #include <HID-Project.h> //https://github.com/NicoHood/HID
 #include <HID-Settings.h>
 
-int CH1 = 7;
-int CH2 = 6;
-int CH3 = 5;
-int CH4 = 4;
-int CH5 = 3;
-int CH6 = 2;
+//switchs
+int switchs[] = {3, 4, 5, 6, 7, 8};
+int sw_state[] = {0, 0, 0, 0, 0, 0};
+int sw_up[] = {8, 6, 4, 14, 12, 10};
+int sw_down[] = {9, 7, 5, 15, 13, 11};
 
-byte rows[] = {15, 14, 16};
-byte cols[] = {10, 9, 8};
+int led_red = 9;
+int led_green = 10;
 
-const int rowCount = sizeof(rows)/sizeof(rows[0]);
-const int colCount = sizeof(cols)/sizeof(cols[0]);
-
-byte keys[colCount][rowCount];
+int btns[] = {2, 16, 14};
+int btn_press[] = {1, 2, 3};
 
 void setup() {
-  Serial.begin(115200);
-  
-  for(int x=0; x<rowCount; x++)
-    pinMode(rows[x], INPUT);
-    
-  for(int x=0; x<rowCount; x++)
-    pinMode(cols[x], INPUT_PULLUP);
+  Serial.begin(9600);
 
-  pinMode(CH1, INPUT_PULLUP);
-  pinMode(CH2, INPUT_PULLUP);
-  pinMode(CH3, INPUT_PULLUP);
-  pinMode(CH4, INPUT_PULLUP); 
-  pinMode(CH5, INPUT_PULLUP);
-  pinMode(CH6, INPUT_PULLUP);
+  for(int i = 0; i < (sizeof(switchs)/sizeof(int)); i++) {
+    pinMode(switchs[i], INPUT_PULLUP);  
+    sw_state[i] = digitalRead(switchs[i]);
+  }
+
+  for(int i = 0; i < (sizeof(btns)/sizeof(int)); i++)
+    pinMode(btns[i], INPUT_PULLUP);  
+
+  pinMode(led_red, OUTPUT);
+  pinMode(led_green, OUTPUT);
+
+  digitalWrite(led_red, LOW);
+  digitalWrite(led_green, LOW);
   
   Gamepad.begin();
 }
 
-void readMatrix() {
-    // iterate the columns
-    for (int colIndex=0; colIndex < colCount; colIndex++) {
-        // col: set to output to low
-        byte curCol = cols[colIndex];
-        pinMode(curCol, OUTPUT);
-        digitalWrite(curCol, LOW);
- 
-        // row: interate through the rows
-        for (int rowIndex=0; rowIndex < rowCount; rowIndex++) {
-            byte rowCol = rows[rowIndex];
-            pinMode(rowCol, INPUT_PULLUP);
-            keys[colIndex][rowIndex] = digitalRead(rowCol);
-            pinMode(rowCol, INPUT);
-        }
-        // disable the column
-        pinMode(curCol, INPUT);
+void readSwitchs() {
+
+  for(int i = 0; i < (sizeof(switchs)/sizeof(int)); i++) {
+    
+    bool aux = digitalRead(switchs[i]);
+    
+    if(sw_state[i] == aux) {
+      Gamepad.release(sw_up[i]); 
+      Gamepad.release(sw_down[i]); 
+    } else {
+      
+      sw_state[i] = aux;
+      
+      if(sw_state[i] == LOW)
+        Gamepad.press(sw_up[i]); 
+      else
+        Gamepad.press(sw_down[i]);
     }
+  }
 }
 
-void printMatrix() {
-    for (int rowIndex=0; rowIndex < rowCount; rowIndex++) {
-        if (rowIndex < 10)
-            Serial.print(F("0"));
-        Serial.print(rowIndex); Serial.print(F(": "));
- 
-        for (int colIndex=0; colIndex < colCount; colIndex++) {  
-            Serial.print(keys[colIndex][rowIndex]);
-            if (colIndex < colCount)
-                Serial.print(F(", "));
-        }   
-        Serial.println("");
-    }
-    Serial.println("");
+void readButtons() {
+
+  for(int i = 0; i < (sizeof(btns)/sizeof(int)); i++) {
+
+    if(digitalRead(btns[i]) == LOW)
+      Gamepad.press(btn_press[i]);
+    else
+      Gamepad.release(btn_press[i]);
+  }
+}
+
+int getPotValue(int pot) {
+  int analog = analogRead(pot);
+  int value = map(analog, 0, 1023, 0, 255);  
+  return value;
 }
 
 void loop() {
-  //readMatrix();
-      //delay(200);
-        //printMatrix();
-
- if(digitalRead(CH6) == LOW) 
-  Gamepad.press(1);
- else
-  Gamepad.release(1);
-
- Gamepad.write();
- 
+  
+  readSwitchs();
+  readButtons();
+  
+  Gamepad.write();
+  delay(300);
 }
