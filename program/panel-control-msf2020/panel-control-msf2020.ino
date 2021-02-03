@@ -51,6 +51,8 @@ void setup() {
 
   digitalWrite(led_red, LOW);
   digitalWrite(led_green, LOW);
+
+  turnOnLeds();
   
   Gamepad.begin();
 }
@@ -73,6 +75,8 @@ void readSwitchs() {
       else
         Gamepad.press(sw_down[i]);
     }
+
+    turnOnLeds();
   }
 }
 
@@ -92,14 +96,27 @@ long getPotValue(int pot, bool motor) {
   long value = 0;
 
   if(motor)
-    value = map(analog, 0, 1023, -32767, 32767); 
+    value = map(analog, 0, 1023, 0, 32767); 
    else
-    value = map(analog, 0, 1023, -127, 127);  
+    value = map(analog, 0, 255, -127, 127);  
   return value;
 }
 
-void readPots() {
+void turnOnLeds() {
+  //TODO 
+  //verde com o trem de pouso abaixado
+  //10s de vermelho até mudar o estado
+  if(sw_state[0] == 0) {
+      digitalWrite(led_red, HIGH);
+      digitalWrite(led_green, LOW);
+  } else {
+      digitalWrite(led_red, LOW);
+      digitalWrite(led_green, HIGH);
+  }
+}
 
+void readPots() {
+  
     Gamepad.rzAxis(getPotValue(flaps, false));
     Gamepad.rxAxis(getPotValue(motor1, true));
     Gamepad.ryAxis(getPotValue(motor2, true));
@@ -107,11 +124,10 @@ void readPots() {
 
 
 void loop() {
-  
   readSwitchs();
   readButtons();
   readPots();
   
   Gamepad.write();
-  delay(300);
+  delay(200);
 }
